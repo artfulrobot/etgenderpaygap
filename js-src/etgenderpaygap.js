@@ -1,8 +1,9 @@
 (($)=>$(()=>{
   const $form = $('.etgpg');
 
+  $userInputs = $('<div/>');
 
-  $form.html(`
+  $userInputs.html(`
     <div class="etgpg__field">
       <label for="etgpg__salary">Salary</label>
       <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="number" /></div>
@@ -23,9 +24,10 @@
 
   `);
   const $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
-  $form.append($button);
+  $userInputs.append($button);
+  $form.append($userInputs);
 
-  const $result = $('<div class="etgpg__result"/>').hide();
+  const $result = $('<div class="etgpg__result">Loading...</div>').hide();
   $form.append($result);
 
   const $companyInput = $form.find('input[name="company"]');
@@ -40,7 +42,8 @@
   var isSaving = false;
 
   function handleCalculateButton() {
-    $button.prop('disabled', true).text('Just a mo...');
+    $userInputs.hide();
+    $result.show();
 
     // Log at the server.
     $.ajax({
@@ -56,10 +59,22 @@
     })
     .then(r => {
       console.log(r);
-      $result.show();
+      $result.empty();
+      $result.append(
+          (
+            (r.paygap_salary > 0)
+            ? `Based on the gender pay gap at <span>${r.company}</span>`
+            : `We could not calculate a gender pay gap at your company, but based on the national average`
+          )
+        + ` the lifetime loss of income for someone at your pay is
+        <div class="etgpg__loss">${r.lifetimeLoss}</div>
+        If you think this is bad, please <a href="#" class="etgpg__button">Sign the petition</a>
+        A total lifetime loss of ${r.lifetimeLossTotal} has been calculated from ${r.count} women using this tool.`
+      );
     })
     .fail((jqxhr, textStatus, error) => {
-      $button.prop('disabled', false);
+      $userInputs.show();
+      $result.hide();
       alert("Sorry, something went wrong, please try again.");
     });
 

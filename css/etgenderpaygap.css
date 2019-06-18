@@ -61,4 +61,9 @@
     .etgpg__hints li:hover, .etgpg__hints li.highlighted {
       background-color: #eee; }
 
+.etgpg__loss {
+  font-size: 2rem;
+  text-align: center;
+  color: #800; }
+
 /*# sourceMappingURL=etgenderpaygap.css.map */

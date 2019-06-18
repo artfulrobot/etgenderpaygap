@@ -129,11 +129,11 @@ function etgenderpaygap__page_submit() {
   variable_set('etgenderpaygap_count', $count);
 
   $output = [
-    'lifetimeLoss'      => $loss,
+    'lifetimeLoss'      => '£' . number_format($loss, 0),
     'count'             => $count,
-    'lifetimeLossTotal' => $total_loss,
-    'paygap_salary'     => $company['paygap_hours'],
-    'paygap_bonus'      => $company['paygap_hours'],
+    'lifetimeLossTotal' => '£' . number_format($total_loss, 0),
+    'paygap_salary'     => (float) $company['paygap_hours'],
+    'paygap_bonus'      => (float) $company['paygap_hours'],
     'company'           => $company['name'],
   ];
 
