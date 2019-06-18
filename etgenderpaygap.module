@@ -1,5 +1,6 @@
 <?php
 use \ArtfulRobot\CsvParser;
+const WORKING_YEARS=45;
 
 function etgenderpaygap_menu() {
   return [
@@ -92,6 +93,12 @@ function etgenderpaygap__access_matches() {
  * - company (id)
  * - salary (required)
  * - bonus (optional)
+ *
+ * Outputs: {
+ *  lifetimeLoss: 123456,
+ *  count: 123,
+ *  totalLifetimeLoss: 1231313123
+ * }
  */
 function etgenderpaygap__page_submit() {
   $company_id = (int) $_POST['company'] ?? 0;
@@ -111,10 +118,10 @@ function etgenderpaygap__page_submit() {
   // OK got everything we need.
   $loss = 0;
   if ($company['paygap_hours'] > 0) {
-    $loss += $company['paygap_hours'] / 100 * $_POST['salary'];
+    $loss += $company['paygap_hours'] / 100 * $_POST['salary'] * WORKING_YEARS;
   }
   if ($company['paygap_bonus'] > 0 && !empty($_POST['bonus'])) {
-    $loss += $company['paygap_bonus'] / 100 * $_POST['bonus'];
+    $loss += $company['paygap_bonus'] / 100 * $_POST['bonus'] * WORKING_YEARS;
   }
   $total_loss = variable_get('etgenderpaygap_loss', 0) + $loss;
   $count = variable_get('etgenderpaygap_count', 0) + 1;
@@ -122,8 +129,12 @@ function etgenderpaygap__page_submit() {
   variable_set('etgenderpaygap_count', $count);
 
   $output = [
-    'count' => $count,
-    'loss' => $total_loss,
+    'lifetimeLoss'      => $loss,
+    'count'             => $count,
+    'lifetimeLossTotal' => $total_loss,
+    'paygap_salary'     => $company['paygap_hours'],
+    'paygap_bonus'      => $company['paygap_hours'],
+    'company'           => $company['name'],
   ];
 
   drupal_json_output($output);
@@ -165,7 +176,7 @@ class ETGenderPayGapMatcher
     $start = implode('%', $this->keys) . '%';
     $anywhere = '%' . $start;
     $matches = db_query("
-        SELECT *
+        SELECT id, name
         FROM etgenderpaygap_companies
         WHERE name LIKE :anywhere
         ORDER BY NOT name LIKE :start, name
@@ -173,11 +184,13 @@ class ETGenderPayGapMatcher
       ->fetchAllAssoc('id');
     $count = count($matches);
     $matches = array_values($matches);
+    /*
     foreach ($matches as &$row) {
       $row->paygap_hours = (float) $row->paygap_hours;
       $row->paygap_bonus = (float) $row->paygap_bonus;
     }
     unset($row);
+     */
 
     if ($count == 10) {
       // We hit 10, are there more?
@@ -196,7 +209,7 @@ class ETGenderPayGapMatcher
         $params[":key$i"] = '%' . $k . '%';
         $sql[] = "name LIKE :key$i";
       }
-      $sql = "SELECT * FROM etgenderpaygap_companies WHERE " . implode(' AND ', $sql)
+      $sql = "SELECT id, name FROM etgenderpaygap_companies WHERE " . implode(' AND ', $sql)
         . " ORDER BY name";
       $result = db_query($sql, $params);
       $count = $result->rowCount();

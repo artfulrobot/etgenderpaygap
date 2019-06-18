@@ -4,7 +4,7 @@
   return $(function () {
     var $form = $('.etgpg');
 
-    $form.html('\n    <div class="etgpg__field"><label>Salary\n    <input name="salary" type="number" /></label></div>\n\n    <div class="etgpg__field"><label>Bonus (optional)\n    <input name="bonus" type="number" /></label></div>\n\n    <div class="etgpg__field"><label>Company\n    <input name="company" /></label>\n    <div class="etgpg__hints"></div></div>\n\n  ');
+    $form.html('\n    <div class="etgpg__field">\n      <label for="etgpg__salary">Salary</label>\n      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="number" /></div>\n    </div>\n\n    <div class="etgpg__field">\n      <label for="etgpg__bonus">Bonus (optional)</label>\n      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="number" /></div>\n    </div>\n\n    <div class="etgpg__field etgpg__field--company">\n      <label for="etgpg__company">Company</label>\n      <div class="etgpg__input">\n        <input id="etgpg__company" name="company" />\n        <div class="etgpg__hints"></div>\n      </div>\n    </div>\n\n  ');
     var $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
     $form.append($button);
 
@@ -12,35 +12,44 @@
     $form.append($result);
 
     var $companyInput = $form.find('input[name="company"]');
-    var $bonusInput = $form.find('input[name="bonus"]');
-    var $salaryInput = $form.find('input[name="salary"]');
+    var $bonusInput = $form.find('input[name="bonus"]').on('input', validateForm);
+    var $salaryInput = $form.find('input[name="salary"]').on('input', validateForm);
     var $hints = $form.find('.etgpg__hints');
     var hintIndex = -1;
     var selectedCompany = false;
     var hints = [];
     var hintCount = 0;
     var debounce = false;
+    var isSaving = false;
 
     function handleCalculateButton() {
-      console.log("OK here you go ", selectedCompany);
-      if (selectedCompany.paygap_hours > 0) {
-        var salary = parseFloat($salaryInput.val());
-        var loss = salary * selectedCompany.paygap_hours;
-        var bonus = parseFloat($bonusInput.val());
-        if (selectedCompany.paygap_bonus > 0 && bonus > 0) {
-          loss += bonus * selectedCompany.paygap_bonus;
+      $button.prop('disabled', true).text('Just a mo...');
+
+      // Log at the server.
+      $.ajax({
+        url: '/etgenderpaygap/submit',
+        dataType: 'json',
+        method: 'POST', // In case they upgrade to jQuery 1.9
+        type: 'POST', // for jQuery 1.8
+        data: {
+          company: selectedCompany.id,
+          salary: $salaryInput.val(),
+          bonus: $bonusInput.val()
         }
-        $result.html('Loss £' + Math.loss);
-      } else {
-        $result.html('We could not identify a pay gap at this company. National average is 18.2%');
-      }
+      }).then(function (r) {
+        console.log(r);
+        $result.show();
+      }).fail(function (jqxhr, textStatus, error) {
+        $button.prop('disabled', false);
+        alert("Sorry, something went wrong, please try again.");
+      });
     }
     function validateForm() {
-      if (selectedCompany) {
-        $button.prop('disabled', false);
-      }
+      valid = !!selectedCompany && parseInt($salaryInput.val()) > 0;
+      $button.prop('disabled', !valid);
     }
     function selectCompany() {
+      console.log("selectCompany", hintIndex, hints[hintIndex]);
       $companyInput.val(hints[hintIndex].name);
       selectedCompany = hints[hintIndex];
       $hints.hide();
@@ -107,7 +116,7 @@
         hints.forEach(function (hint, i) {
           var $li = $('<li/>').text(hint.name);
           $li.on('click', function (e) {
-            hintIndex = i;highlightCompany();selectCompany();
+            console.log("hintIndex set to ", i);hintIndex = i;highlightCompany();selectCompany();
           });
           $ul.append($li);
         });
@@ -121,7 +130,9 @@
       highlightCompany();
     }
 
-    $companyInput.on('keyup', handleKeyUp);
+    $companyInput.on('keyup', handleKeyUp).on('blur', function (e) {
+      return $hints.fadeOut('fast');
+    });
   });
 })(jQuery);
 //# sourceMappingURL=etgenderpaygap.js.map

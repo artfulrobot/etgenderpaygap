@@ -3,15 +3,23 @@
 
 
   $form.html(`
-    <div class="etgpg__field"><label>Salary
-    <input name="salary" type="number" /></label></div>
+    <div class="etgpg__field">
+      <label for="etgpg__salary">Salary</label>
+      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="number" /></div>
+    </div>
 
-    <div class="etgpg__field"><label>Bonus (optional)
-    <input name="bonus" type="number" /></label></div>
+    <div class="etgpg__field">
+      <label for="etgpg__bonus">Bonus (optional)</label>
+      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="number" /></div>
+    </div>
 
-    <div class="etgpg__field"><label>Company
-    <input name="company" /></label>
-    <div class="etgpg__hints"></div></div>
+    <div class="etgpg__field etgpg__field--company">
+      <label for="etgpg__company">Company</label>
+      <div class="etgpg__input">
+        <input id="etgpg__company" name="company" />
+        <div class="etgpg__hints"></div>
+      </div>
+    </div>
 
   `);
   const $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
@@ -21,36 +29,47 @@
   $form.append($result);
 
   const $companyInput = $form.find('input[name="company"]');
-  const $bonusInput = $form.find('input[name="bonus"]');
-  const $salaryInput = $form.find('input[name="salary"]');
+  const $bonusInput = $form.find('input[name="bonus"]').on('input', validateForm);
+  const $salaryInput = $form.find('input[name="salary"]').on('input', validateForm);
   const $hints = $form.find('.etgpg__hints');
   var hintIndex = -1;
   var selectedCompany = false;
   var hints = [];
   var hintCount = 0;
   var debounce = false;
+  var isSaving = false;
 
   function handleCalculateButton() {
-    console.log("OK here you go ", selectedCompany);
-    if (selectedCompany.paygap_hours > 0) {
-      const salary = parseFloat($salaryInput.val()) ;
-      var loss = salary * selectedCompany.paygap_hours;
-      const bonus = parseFloat($bonusInput.val()) ;
-      if (selectedCompany.paygap_bonus > 0 && bonus > 0) {
-        loss += bonus * selectedCompany.paygap_bonus;
-      }
-      $result.html('Loss £' + Math.loss);
-    }
-    else {
-      $result.html('We could not identify a pay gap at this company. National average is 18.2%');
-    }
+    $button.prop('disabled', true).text('Just a mo...');
+
+    // Log at the server.
+    $.ajax({
+      url: '/etgenderpaygap/submit',
+      dataType: 'json',
+      method: 'POST', // In case they upgrade to jQuery 1.9
+      type: 'POST', // for jQuery 1.8
+      data: {
+        company: selectedCompany.id,
+        salary: $salaryInput.val(),
+        bonus: $bonusInput.val(),
+      },
+    })
+    .then(r => {
+      console.log(r);
+      $result.show();
+    })
+    .fail((jqxhr, textStatus, error) => {
+      $button.prop('disabled', false);
+      alert("Sorry, something went wrong, please try again.");
+    });
+
   }
   function validateForm() {
-    if (selectedCompany) {
-      $button.prop('disabled', false);
-    }
+    valid = (!!selectedCompany) && parseInt($salaryInput.val()) > 0;
+    $button.prop('disabled', !valid);
   }
   function selectCompany() {
+    console.log("selectCompany", hintIndex, hints[hintIndex]);
     $companyInput.val(hints[hintIndex].name);
     selectedCompany = hints[hintIndex];
     $hints.hide();
@@ -124,7 +143,7 @@
       hints.forEach((hint, i) => {
         const $li = $('<li/>')
           .text(hint.name);
-        $li.on('click', e => { hintIndex = i; highlightCompany(); selectCompany(); });
+        $li.on('click', e => { console.log("hintIndex set to ", i); hintIndex = i; highlightCompany(); selectCompany(); });
         $ul.append($li);
       });
       hintIndex = 0;
@@ -138,7 +157,9 @@
     highlightCompany();
   }
 
-  $companyInput.on('keyup', handleKeyUp);
+  $companyInput
+    .on('keyup', handleKeyUp)
+    .on('blur', e => $hints.fadeOut('fast'));
 
 
 }))(jQuery);
