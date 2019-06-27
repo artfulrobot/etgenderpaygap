@@ -1,17 +1,19 @@
 <?php
 use \ArtfulRobot\CsvParser;
 const WORKING_YEARS=45;
-
 function etgenderpaygap_menu() {
   return [
-    'admin/configure/etgenderpaygap' => [
-      'page callback' => 'etgenderpaygap__page_load_data',
-      'access callback' => TRUE, // xxx
+    'admin/config/etgenderpaygap' => [
+      'page callback'    => 'drupal_get_form',
+      'page arguments'   => ['etgenderpaygap__form_config'],
+      'access arguments' => ['administer etgenderpaygap'],
+      'title'            => 'Configure Gender Pay Gap',
+      'type'             => MENU_NORMAL_ITEM,
     ],
 
     'etgenderpaygap/matches' => [
       'page callback'   => 'etgenderpaygap__page_matches',
-      'access callback' => TRUE, //etgenderpaygap__access_matches
+      'access callback' => TRUE,
     ],
 
     'etgenderpaygap/submit' => [
@@ -21,29 +23,16 @@ function etgenderpaygap_menu() {
   ];
 }
 
-function etgenderpaygap__page_load_data() {
-
-  require_once __DIR__ . "/vendor/CsvParser.php";
-
-  $csv = CsvParser::createFromFile(__DIR__ .'/src/companies.csv');
-
-  db_query('TRUNCATE etgenderpaygap_companies');
-
-  foreach ($csv as $row) {
-    $x = [
-        'name' => trim($row->EmployerName),
-        'paygap_hours' => (float) $row->DiffMeanHourlyPercent,
-        'paygap_bonus' => $row->DiffMeanBonusPercent,
-      ];
-    $x['paygap_bonus'] = empty($x['paygap_bonus']) ? NULL : (float) $x['paygap_bonus'];
-    if (!$x['name']) {
-      continue;
-    }
-    db_insert('etgenderpaygap_companies')
-      ->fields($x)
-      ->execute();
-  }
-
+/**
+ * Implements hook_permission
+ */
+function etgenderpaygap_permission() {
+  return [
+    'administer etgenderpaygap' => [
+      'title' => 'Administer Equality Trust Gender Pay Gap tool',
+      'description' => 'Provides access for uploading new data and editing totals.',
+    ],
+  ];
 }
 /**
  * Implements hook_block_info().
@@ -102,14 +91,23 @@ function etgenderpaygap__access_matches() {
  */
 function etgenderpaygap__page_submit() {
   $company_id = (int) $_POST['company'] ?? 0;
-  $company = db_query(
-    'SELECT * FROM etgenderpaygap_companies WHERE id = :theid;',
-    [':theid' => $company_id]
-  )->fetchAssoc();
-  if (!$company) {
-    // Spam?
-    drupal_json_output(['error' => 'Invalid request']);
-    drupal_exit();
+  if ($company_id) {
+    $company = db_query(
+      'SELECT * FROM etgenderpaygap_companies WHERE id = :theid;',
+      [':theid' => $company_id]
+    )->fetchAssoc();
+    if (!$company) {
+      // Spam?
+      drupal_json_output(['error' => 'Invalid request']);
+      drupal_exit();
+    }
+  }
+  else {
+    $company = [
+      'name' => 'Average UK company',
+      'paygap_hours' => variable_get('etgenderpaygap_avg_paygap', 0),
+      'paygap_bonus' => variable_get('etgenderpaygap_avg_bonusgap', 0),
+    ];
   }
   if (empty($_POST['salary'])) {
     drupal_json_output(['error' => 'Invalid request']);
@@ -153,6 +151,102 @@ function etgenderpaygap__block_form() {
     '#markup' => '<div class="etgpg"><noscript>Please enable Javascript in your browser.</noscript></div>',
   ];
   return $content;
+}
+function etgenderpaygap__form_config($form, &$form_state) {
+  $form['etgenderpaygap_avg_paygap'] = [
+    '#title'       => 'Average paygap percent',
+    '#required'    => TRUE,
+    '#description' => 'This will be used if the user cannot find their company in the list.',
+    '#type'        => 'textfield',
+    '#default_value' => variable_get('etgenderpaygap_avg_paygap', 0),
+  ];
+  $form['etgenderpaygap_avg_bonusgap'] = [
+    '#title'       => 'Average bonus gap percent',
+    '#required'    => TRUE,
+    '#description' => 'This will be used if the user cannot find their company in the list.',
+    '#type'        => 'textfield',
+    '#default_value' => variable_get('etgenderpaygap_avg_bonusgap', 0),
+  ];
+  $form['etgenderpaygap_loss'] = [
+    '#title'       => 'Total accumulated loss',
+    '#required'    => TRUE,
+    '#description' => 'Normally you would not change this here, it is updated automatically.',
+    '#type'        => 'textfield',
+    '#default_value' => variable_get('etgenderpaygap_loss', 0),
+  ];
+  $form['etgenderpaygap_count'] = [
+    '#title'       => 'Total participants',
+    '#required'    => TRUE,
+    '#description' => 'Normally you would not change this here, it is updated automatically.',
+    '#type'        => 'textfield',
+    '#default_value' => variable_get('etgenderpaygap_count', 0),
+  ];
+  $form['etgenderpaygap_data'] = [
+    '#title'             => 'Data source',
+    '#description'       => 'Use this to upload replacement data',
+    '#type'              => 'managed_file',
+    '#upload_location'   => 'private://etgenderpaygap/',
+    '#upload_validators' => ['file_validate_extensions' => ['csv']],
+    '#default_value'     => variable_get('etgenderpaygap_data', NULL),
+  ];
+  $form['#submit'][] = 'etgenderpaygap__form_config_submit';
+  return system_settings_form($form);
+}
+function etgenderpaygap__form_config_validate($form, &$form_state) {
+  // If a new file was uploaded, check it looks correct.
+  $orig = variable_get('etgenderpaygap_data', NULL);
+  $form_state['new_file_was_uploaded'] = ($orig != $form_state["values"]["etgenderpaygap_data"]);
+  if ($orig != $form_state["values"]["etgenderpaygap_data"]) {
+    // Test newly uploaded file.
+    $file = file_load($form_state['values']['etgenderpaygap_data']);
+
+    require_once __DIR__ . "/vendor/CsvParser.php";
+    $csv = CsvParser::createFromFile($file->uri);
+    $headers = $csv->getHeaders();
+    $missing = [];
+    foreach (['EmployerName', 'DiffMeanHourlyPercent', 'DiffMeanBonusPercent'] as $_) {
+      if (!in_array($_, $headers)) {
+        $missing[] = $_;
+      }
+    }
+    if ($missing) {
+      form_set_error('etgenderpaygap_data', "The CSV file is missing these columns: " . implode(', ', $missing));
+    }
+    else {
+    }
+  }
+}
+function etgenderpaygap__form_config_submit($form, &$form_state) {
+  // If a new file was uploaded, check it looks correct.
+  if ($form_state['new_file_was_uploaded'] ?? FALSE) {
+    $file = file_load($form_state['values']['etgenderpaygap_data']);
+    $file->status = FILE_STATUS_PERMANENT;
+    file_save($file);
+    file_usage_add($file, 'etgenderpaygap', 'etgenerpaygap', 0);
+    require_once __DIR__ . "/vendor/CsvParser.php";
+    $csv = CsvParser::createFromFile($file->uri);
+
+    // Drop old data.
+    db_query('TRUNCATE etgenderpaygap_companies');
+
+    $success = 0;
+    foreach ($csv as $row) {
+      $x = [
+        'name' => trim($row->EmployerName),
+        'paygap_hours' => (float) $row->DiffMeanHourlyPercent,
+        'paygap_bonus' => $row->DiffMeanBonusPercent,
+      ];
+      $x['paygap_bonus'] = empty($x['paygap_bonus']) ? NULL : (float) $x['paygap_bonus'];
+      if (!$x['name']) {
+        continue;
+      }
+      db_insert('etgenderpaygap_companies')
+        ->fields($x)
+        ->execute();
+      $success++;
+    }
+    drupal_set_message($success . " companies' data uploaded.", 'status');
+  }
 }
 class ETGenderPayGapMatcher
 {

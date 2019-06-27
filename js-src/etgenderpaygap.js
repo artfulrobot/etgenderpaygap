@@ -6,12 +6,12 @@
   $userInputs.html(`
     <div class="etgpg__field">
       <label for="etgpg__salary">Salary</label>
-      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="number" /></div>
+      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="text" /><span class="etgpg__salary_msg"></span></div>
     </div>
 
     <div class="etgpg__field">
       <label for="etgpg__bonus">Bonus (optional)</label>
-      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="number" /></div>
+      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="text" /><span class="etgpg__bonus_msg"></span></div>
     </div>
 
     <div class="etgpg__field etgpg__field--company">
@@ -31,8 +31,10 @@
   $form.append($result);
 
   const $companyInput = $form.find('input[name="company"]');
-  const $bonusInput = $form.find('input[name="bonus"]').on('input', validateForm);
-  const $salaryInput = $form.find('input[name="salary"]').on('input', validateForm);
+  const $salaryInput = $form.find('input[name="salary"]')
+    .on('input', validateSalary);
+  const $bonusInput = $form.find('input[name="bonus"]')
+    .on('input', validateBonus);
   const $hints = $form.find('.etgpg__hints');
   var hintIndex = -1;
   var selectedCompany = false;
@@ -42,8 +44,9 @@
   var isSaving = false;
 
   function handleCalculateButton() {
+    // Set the min height of the result box to that of the input box to minimise screen flashing.
+    $result.css('min-height', $userInputs.height() + 'px').show();
     $userInputs.hide();
-    $result.show();
 
     // Log at the server.
     $.ajax({
@@ -68,7 +71,7 @@
           )
         + ` the lifetime loss of income for someone at your pay is
         <div class="etgpg__loss">${r.lifetimeLoss}</div>
-        If you think this is bad, please <a href="#" class="etgpg__button">Sign the petition</a>
+        If you think this is bad, please <br /><div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div><br/>
         A total lifetime loss of ${r.lifetimeLossTotal} has been calculated from ${r.count} women using this tool.`
       );
     })
@@ -79,9 +82,49 @@
     });
 
   }
-  function validateForm() {
-    valid = (!!selectedCompany) && parseInt($salaryInput.val()) > 0;
+  function parseAsNumber(v, optional) {
+    // Trim.
+    v = v.replace(/^\s*(.*?)\s*$/, '$1');
+    if (v==='' && optional) {
+      return;
+    }
+    v = v.replace(/[£,]/g, '');
+    if (v.match(/^[1-9]\d\d\d+$/)) {
+      return parseInt(v);
+    }
+    // Error
+    return false;
+  }
+  function validateForm(showMessages) {
+    valid = true;
+    valid &= validateSalary();
+    valid &= validateBonus();
+    valid &= (!!selectedCompany);
     $button.prop('disabled', !valid);
+  }
+  function validateSalary() {
+    valid = true;
+    if (parseAsNumber($salaryInput.val()) !== false) {
+      // Salary is ok.
+      $form.find('.etgpg__salary_msg').empty();
+    }
+    else {
+      valid = false;
+      $form.find('.etgpg__salary_msg').text('Enter gross salary like 20000');
+    }
+    return valid;
+  }
+  function validateBonus() {
+    valid = true;
+    if (parseAsNumber($bonusInput.val(), true) !== false) {
+      // Bonus is ok.
+      $form.find('.etgpg__bonus_msg').empty();
+    }
+    else {
+      valid = false;
+      $form.find('.etgpg__bonus_msg').text('Enter gross bonus like 20000');
+    }
+    return valid;
   }
   function selectCompany() {
     console.log("selectCompany", hintIndex, hints[hintIndex]);
@@ -152,23 +195,23 @@
     });
   }
   function createHints() {
-    if (hintCount > 0) {
-      const $ul = $('<ul/>');
 
-      hints.forEach((hint, i) => {
-        const $li = $('<li/>')
-          .text(hint.name);
-        $li.on('click', e => { console.log("hintIndex set to ", i); hintIndex = i; highlightCompany(); selectCompany(); });
-        $ul.append($li);
-      });
-      hintIndex = 0;
-      $hints.empty().append($ul);
-      $hints.fadeIn('fast');
+    if (hintCount === 0) {
+      // No hints, provide a fallback.
+      hints = [{name: '(Other UK company, use average)', id: 0}];
     }
-    else {
-      hintIndex = -1;
-      $hints.empty();
-    }
+    const $ul = $('<ul/>');
+
+    hints.forEach((hint, i) => {
+      const $li = $('<li/>')
+        .text(hint.name);
+      $li.on('click', e => { console.log("hintIndex set to ", i); hintIndex = i; highlightCompany(); selectCompany(); });
+      $ul.append($li);
+    });
+    hintIndex = 0;
+    $hints.empty().append($ul);
+    $hints.fadeIn('fast');
+
     highlightCompany();
   }
 
