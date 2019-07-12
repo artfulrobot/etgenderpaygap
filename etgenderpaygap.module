@@ -116,10 +116,20 @@ function etgenderpaygap__page_submit() {
   // OK got everything we need.
   $loss = 0;
   if ($company['paygap_hours'] > 0) {
-    $loss += $company['paygap_hours'] / 100 * $_POST['salary'] * WORKING_YEARS;
+    $salary = (int) preg_replace('/[,£]/', '', trim($_POST['salary']));
+    if (!$salary > 0) {
+      drupal_json_output(['error' => 'Salary incorrectly entered']);
+      drupal_exit();
+    }
+    $loss += $company['paygap_hours'] / 100 * $salary * WORKING_YEARS;
   }
-  if ($company['paygap_bonus'] > 0 && !empty($_POST['bonus'])) {
-    $loss += $company['paygap_bonus'] / 100 * $_POST['bonus'] * WORKING_YEARS;
+  if ($company['paygap_bonus'] > 0 && !empty(trim($_POST['bonus']))) {
+    $bonus = (int) preg_replace('/[,£]/', '', trim($_POST['bonus']));
+    if (!$salary > 0) {
+      drupal_json_output(['error' => 'Salary incorrectly entered']);
+      drupal_exit();
+    }
+    $loss += $company['paygap_bonus'] / 100 * $bonus * WORKING_YEARS;
   }
   $total_loss = variable_get('etgenderpaygap_loss', 0) + $loss;
   $count = variable_get('etgenderpaygap_count', 0) + 1;
