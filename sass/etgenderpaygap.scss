@@ -94,9 +94,20 @@ a.etgpg__button {
   }
 
 }
+.etgpg__date,
 .etgpg__loss {
   font-size: 2rem;
   text-align: center;
   color: #800;
   margin:0.5rem 0;
 }
+
+.etgpg__date-intro {
+  margin-top:1rem;
+}
+
+.etgpg__total-stats {
+  margin-top:1rem;
+  font-size: (14rem/16);
+}
+

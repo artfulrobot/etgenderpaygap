@@ -44,7 +44,7 @@
       }).then(function (r) {
         console.log(r);
         $result.empty();
-        $result.append((r.paygap_salary > 0 ? 'Based on the gender pay gap at <span>' + r.company + '</span>' : 'We could not calculate a gender pay gap at your company, but based on the national average') + (' the lifetime loss of income for someone at your pay is\n        <div class="etgpg__loss">' + r.lifetimeLoss + '</div>\n        If you think this is bad, please <br /><div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div><br/>\n        A total lifetime loss of ' + r.lifetimeLossTotal + ' has been calculated from ' + r.count + ' women using this tool.'));
+        $result.append((r.paygap_salary > 0 ? 'Based on the gender pay gap at <span>' + r.company + '</span>' : 'We could not calculate a gender pay gap at your company, but based on the national average') + (' the lifetime loss of income for someone at your pay is\n        <div class="etgpg__loss">' + r.lifetimeLoss + '</div>\n        <div class="etgpg__date-intro">The date when women cease to be paid compared to men is</div>\n        <div class="etgpg__date">' + r.last_paid_day + '</div>\n\n        <div class="etgpg__petition-ask">If you think this is bad, please\n          <div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div>\n        </div>\n        <div class="etgpg__total-stats">A total lifetime loss of\n        ' + r.lifetimeLossTotal + ' has been calculated from ' + r.count + ' women using\n        this tool.</div>'));
       }).fail(function (jqxhr, textStatus, error) {
         $userInputs.show();
         $result.hide();

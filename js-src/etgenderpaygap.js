@@ -71,8 +71,15 @@
           )
         + ` the lifetime loss of income for someone at your pay is
         <div class="etgpg__loss">${r.lifetimeLoss}</div>
-        If you think this is bad, please <br /><div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div><br/>
-        A total lifetime loss of ${r.lifetimeLossTotal} has been calculated from ${r.count} women using this tool.`
+        <div class="etgpg__date-intro">The date when women cease to be paid compared to men is</div>
+        <div class="etgpg__date">${r.last_paid_day}</div>
+
+        <div class="etgpg__petition-ask">If you think this is bad, please
+          <div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div>
+        </div>
+        <div class="etgpg__total-stats">A total lifetime loss of
+        ${r.lifetimeLossTotal} has been calculated from ${r.count} women using
+        this tool.</div>`
       );
     })
     .fail((jqxhr, textStatus, error) => {

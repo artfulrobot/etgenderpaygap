@@ -106,35 +106,37 @@ function etgenderpaygap__page_submit() {
     $company = [
       'name' => 'Average UK company',
       'paygap_hours' => variable_get('etgenderpaygap_avg_paygap', 0),
-      'paygap_bonus' => variable_get('etgenderpaygap_avg_bonusgap', 0),
+      'paygap_bonus' => 0, // variable_get('etgenderpaygap_avg_bonusgap', 0),
     ];
   }
   if (empty($_POST['salary'])) {
     drupal_json_output(['error' => 'Invalid request']);
     drupal_exit();
   }
-  // OK got everything we need.
-  $loss = 0;
-  if ($company['paygap_hours'] > 0) {
-    $salary = (int) preg_replace('/[,£]/', '', trim($_POST['salary']));
-    if (!$salary > 0) {
-      drupal_json_output(['error' => 'Salary incorrectly entered']);
-      drupal_exit();
-    }
-    $loss += $company['paygap_hours'] / 100 * $salary * WORKING_YEARS;
+
+  $salary = (int) preg_replace('/[,£]/', '', trim($_POST['salary']));
+  if (! $salary > 0) {
+    drupal_json_output(['error' => 'Salary incorrectly entered']);
+    drupal_exit();
   }
-  if ($company['paygap_bonus'] > 0 && !empty(trim($_POST['bonus']))) {
-    $bonus = (int) preg_replace('/[,£]/', '', trim($_POST['bonus']));
-    if (!$salary > 0) {
-      drupal_json_output(['error' => 'Salary incorrectly entered']);
-      drupal_exit();
-    }
+
+  // Use the company paygap, unless it's zero or negative, in which case use the national average.
+  $gap_used = ($company['paygap_hours'] > 0) ? $company['paygap_hours'] : variable_get('etgenderpaygap_avg_paygap', 0);
+  $loss = $gap_used / 100 * $salary * WORKING_YEARS;
+
+  // If we have a bonus, and a paygap for bonuses at this company, include that in the loss.
+  $bonus = (int) preg_replace('/[,£]/', '', trim($_POST['bonus'] ?? ''));
+  if ($company['paygap_bonus'] > 0 && $bonus) {
     $loss += $company['paygap_bonus'] / 100 * $bonus * WORKING_YEARS;
   }
   $total_loss = variable_get('etgenderpaygap_loss', 0) + $loss;
   $count = variable_get('etgenderpaygap_count', 0) + 1;
   variable_set('etgenderpaygap_loss', $total_loss);
   variable_set('etgenderpaygap_count', $count);
+
+  // Calculate date in the year at which women are effectively not paid compared to men
+  $days = ((int) (365 * (100 - $gap_used)/100));
+  $date = date('j F', strtotime('1 January 2019 + ' . $days . ' days'));
 
   $output = [
     'lifetimeLoss'      => '£' . number_format($loss, 0),
@@ -143,6 +145,7 @@ function etgenderpaygap__page_submit() {
     'paygap_salary'     => (float) $company['paygap_hours'],
     'paygap_bonus'      => (float) $company['paygap_hours'],
     'company'           => $company['name'],
+    'last_paid_day'     => $date,
   ];
 
   drupal_json_output($output);
@@ -170,6 +173,7 @@ function etgenderpaygap__form_config($form, &$form_state) {
     '#type'        => 'textfield',
     '#default_value' => variable_get('etgenderpaygap_avg_paygap', 0),
   ];
+  /*
   $form['etgenderpaygap_avg_bonusgap'] = [
     '#title'       => 'Average bonus gap percent',
     '#required'    => TRUE,
@@ -177,6 +181,7 @@ function etgenderpaygap__form_config($form, &$form_state) {
     '#type'        => 'textfield',
     '#default_value' => variable_get('etgenderpaygap_avg_bonusgap', 0),
   ];
+   */
   $form['etgenderpaygap_loss'] = [
     '#title'       => 'Total accumulated loss',
     '#required'    => TRUE,
