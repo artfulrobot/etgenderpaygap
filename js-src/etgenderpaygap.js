@@ -23,9 +23,11 @@
     </div>
 
     <div class="etgpg__smallprint">
-      We are collecting and storing anonymous salary data for campaigning and
-      research purposes for a maximum of five years. If you want your data
-      removed, please contact <a href="mailto:jo.wittams@equalitytrust.org.uk">Jo Wittams</a>, Finance and Operations Manager.
+      We are collecting anonymous salary data for campaigning and research
+      purposes. We are only storing aggregate totals, not each submission, so
+      we will not able to withdraw your submission. If you have any queries
+      about how we collect and store data, please contact <a href="mailto:jo.wittams@equalitytrust.org.uk">Jo Wittams</a>, Finance and
+      Operations Manager.
     </div>
 
   `);
