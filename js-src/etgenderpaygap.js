@@ -22,6 +22,12 @@
       </div>
     </div>
 
+    <div class="etgpg__smallprint">
+      We are collecting and storing anonymous salary data for campaigning and
+      research purposes for a maximum of five years. If you want your data
+      removed, please contact <a href="mailto:jo.wittams@equalitytrust.org.uk">Jo Wittams</a>, Finance and Operations Manager.
+    </div>
+
   `);
   const $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
   $userInputs.append($button);
@@ -69,17 +75,24 @@
             ? `Based on the gender pay gap at <span>${r.company}</span>`
             : `We could not calculate a gender pay gap at your company, but based on the national average`
           )
-        + ` the lifetime loss of income for someone at your pay is
+        + `, the lifetime earnings loss for someone at your pay is*
         <div class="etgpg__loss">${r.lifetimeLoss}</div>
-        <div class="etgpg__date-intro">The date when women cease to be paid compared to men is</div>
+        <div class="etgpg__date-intro">The date in the year when women `
+        + ((r.paygap_salary > 0) ? `working at ${r.company} ` : '')
+        + `effectively cease to be paid is</div>
         <div class="etgpg__date">${r.last_paid_day}</div>
 
-        <div class="etgpg__petition-ask">If you think this is bad, please
-          <div class="etgpg__centre"><a href="#" class="etgpg__button">Sign the petition</a></div>
+        <div class="etgpg__petition-ask">If you think it's about time for
+          equal pay, sign up to be notified of our campaign to win equal pay and
+          find out what you can do to challenge pay inequality in the UK.
+          <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign the petition</a></div>
         </div>
         <div class="etgpg__total-stats">A total lifetime loss of
         ${r.lifetimeLossTotal} has been calculated from ${r.count} women using
-        this tool.</div>`
+        this tool.</div>
+        <div class="etgpg__smallprint">*This is an estimated calculation based
+        on 2018 gender pay gap reporting data.</div>
+        `
       );
     })
     .fail((jqxhr, textStatus, error) => {

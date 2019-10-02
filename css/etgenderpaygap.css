@@ -101,4 +101,9 @@ a.etgpg__button {
   margin-top: 1rem;
   font-size: 0.875rem; }
 
+.etgpg__smallprint {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  opacity: 0.73; }
+
 /*# sourceMappingURL=etgenderpaygap.css.map */
