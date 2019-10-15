@@ -6,17 +6,20 @@
 
     $userInputs = $('<div/>');
 
-    $userInputs.html('\n    <div class="etgpg__field">\n      <label for="etgpg__salary">Salary</label>\n      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="text" /><span class="etgpg__salary_msg"></span></div>\n    </div>\n\n    <div class="etgpg__field">\n      <label for="etgpg__bonus">Bonus (optional)</label>\n      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="text" /><span class="etgpg__bonus_msg"></span></div>\n    </div>\n\n    <div class="etgpg__field etgpg__field--company">\n      <label for="etgpg__company">Company</label>\n      <div class="etgpg__input">\n        <input id="etgpg__company" name="company" />\n        <div class="etgpg__hints"></div>\n      </div>\n    </div>\n\n    <div class="etgpg__smallprint">\n      We are collecting anonymous salary data for campaigning and research\n      purposes. We are only storing aggregate totals, not each submission, so\n      we will not able to withdraw your submission. If you have any queries\n      about how we collect and store data, please contact <a href="mailto:jo.wittams@equalitytrust.org.uk">Jo Wittams</a>, Finance and\n      Operations Manager.\n    </div>\n\n  ');
-    var $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
-    $userInputs.append($button);
+    $userInputs.html('\n    <div class="etgpg__field">\n      <label for="etgpg__salary">Salary</label>\n      <div class="etgpg__input"><input id="etgpg__salary" name="salary" type="text" /><span class="etgpg__salary_msg"></span></div>\n    </div>\n\n    <div class="etgpg__field">\n      <label for="etgpg__bonus">Bonus (optional)</label>\n      <div class="etgpg__input"><input id="etgpg__bonus" name="bonus" type="text" /><span class="etgpg__bonus_msg"></span></div>\n    </div>\n\n    <div class="etgpg__field etgpg__field--company">\n      <label for="etgpg__company">Company</label>\n      <div class="etgpg__input">\n        <input id="etgpg__company" name="company" />\n        <div class="etgpg__hints"></div>\n      </div>\n    </div>\n\n    <button class="etgpg__btn-calc">Calculate</button>\n\n    <div class="etgpg__smallprint">\n      We are collecting anonymous salary data for campaigning and research\n      purposes. We are only storing aggregate totals, not each submission, so\n      we will not able to withdraw your submission. If you have any queries\n      about how we collect and store data, please contact <a href="mailto:jo.wittams@equalitytrust.org.uk">Jo Wittams</a>, Finance and\n      Operations Manager.\n    </div>\n\n  ');
+    var $button = $userInputs.find('button').prop('disabled', true).on('click', handleCalculateButton);
     $form.append($userInputs);
 
     var $result = $('<div class="etgpg__result">Loading...</div>').hide();
     $form.append($result);
 
     var $companyInput = $form.find('input[name="company"]');
-    var $salaryInput = $form.find('input[name="salary"]').on('input', validateSalary);
-    var $bonusInput = $form.find('input[name="bonus"]').on('input', validateBonus);
+    var $salaryInput = $form.find('input[name="salary"]').on('input', function (e) {
+      salaryTouched = true;validateForm();
+    });
+    var $bonusInput = $form.find('input[name="bonus"]').on('input', function (e) {
+      bonusTouched = true;validateForm();
+    });
     var $hints = $form.find('.etgpg__hints');
     var hintIndex = -1;
     var selectedCompany = false;
@@ -24,6 +27,9 @@
     var hintCount = 0;
     var debounce = false;
     var isSaving = false;
+    var salaryTouched = false;
+    var bonusTouched = false;
+    var companyTouched = false;
 
     function handleCalculateButton() {
       // Set the min height of the result box to that of the input box to minimise screen flashing.
@@ -44,7 +50,7 @@
       }).then(function (r) {
         console.log(r);
         $result.empty();
-        $result.append((r.paygap_salary > 0 ? 'Based on the gender pay gap at <span>' + r.company + '</span>' : 'We could not calculate a gender pay gap at your company, but based on the national average') + (', the lifetime earnings loss for someone at your pay is*\n        <div class="etgpg__loss">' + r.lifetimeLoss + '</div>\n        <div class="etgpg__date-intro">The date in the year when women ') + (r.paygap_salary > 0 ? 'working at ' + r.company + ' ' : '') + ('effectively cease to be paid is</div>\n        <div class="etgpg__date">' + r.last_paid_day + '</div>\n\n        <div class="etgpg__petition-ask">If you think it\'s about time for\n          equal pay, sign up to be notified of our campaign to win equal pay and\n          find out what you can do to challenge pay inequality in the UK.\n          <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign the petition</a></div>\n        </div>\n        <div class="etgpg__total-stats">A total lifetime loss of\n        ' + r.lifetimeLossTotal + ' has been calculated from ' + r.count + ' women using\n        this tool.</div>\n        <div class="etgpg__smallprint">*This is an estimated calculation based\n        on 2018 gender pay gap reporting data.</div>\n        '));
+        $result.append((r.paygap_salary > 0 ? 'Based on the gender pay gap at <span>' + r.company + '</span>' : 'We could not calculate a gender pay gap at your company, but based on the national average') + (', the lifetime earnings loss for someone at your pay is*\n        <div class="etgpg__loss">' + r.lifetimeLoss + '</div>\n        <div class="etgpg__date-intro">The date in the year when women ') + (r.paygap_salary > 0 ? 'working at ' + r.company + ' ' : '') + ('effectively cease to be paid is</div>\n        <div class="etgpg__date">' + r.last_paid_day + '</div>\n\n        <div class="etgpg__petition-ask">If you think it\'s about time for\n          equal pay, sign up to be notified of our campaign to win equal pay and\n          find out what you can do to challenge pay inequality in the UK.\n          <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign up now</a></div>\n        </div>\n        <div class="etgpg__total-stats">A total lifetime loss of\n        ' + r.lifetimeLossTotal + ' has been calculated from ' + r.count + ' women using\n        this tool.</div>\n        <div class="etgpg__smallprint">*This is an estimated calculation based\n        on 2018 gender pay gap reporting data.</div>\n        '));
       }).fail(function (jqxhr, textStatus, error) {
         $userInputs.show();
         $result.hide();
@@ -78,7 +84,9 @@
         $form.find('.etgpg__salary_msg').empty();
       } else {
         valid = false;
-        $form.find('.etgpg__salary_msg').text('Enter gross salary like 20000');
+        if (salaryTouched) {
+          $form.find('.etgpg__salary_msg').text('Enter gross salary like 20000');
+        }
       }
       return valid;
     }
@@ -89,7 +97,9 @@
         $form.find('.etgpg__bonus_msg').empty();
       } else {
         valid = false;
-        $form.find('.etgpg__bonus_msg').text('Enter gross bonus like 20000');
+        if (bonusTouched) {
+          $form.find('.etgpg__bonus_msg').text('Enter gross bonus like 20000');
+        }
       }
       return valid;
     }
@@ -98,6 +108,7 @@
       $companyInput.val(hints[hintIndex].name);
       selectedCompany = hints[hintIndex];
       $hints.hide();
+      companyTouched = true;
       validateForm();
     }
     function highlightCompany() {

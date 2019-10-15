@@ -22,6 +22,8 @@
       </div>
     </div>
 
+    <button class="etgpg__btn-calc">Calculate</button>
+
     <div class="etgpg__smallprint">
       We are collecting anonymous salary data for campaigning and research
       purposes. We are only storing aggregate totals, not each submission, so
@@ -31,8 +33,8 @@
     </div>
 
   `);
-  const $button = $('<button>Calculate</button>').prop('disabled', true).on('click', handleCalculateButton);
-  $userInputs.append($button);
+  const $button = $userInputs.find('button')
+    .prop('disabled', true).on('click', handleCalculateButton);
   $form.append($userInputs);
 
   const $result = $('<div class="etgpg__result">Loading...</div>').hide();
@@ -40,9 +42,9 @@
 
   const $companyInput = $form.find('input[name="company"]');
   const $salaryInput = $form.find('input[name="salary"]')
-    .on('input', validateSalary);
+    .on('input', e => { salaryTouched = true; validateForm(); });
   const $bonusInput = $form.find('input[name="bonus"]')
-    .on('input', validateBonus);
+    .on('input', e => { bonusTouched = true; validateForm(); });
   const $hints = $form.find('.etgpg__hints');
   var hintIndex = -1;
   var selectedCompany = false;
@@ -50,6 +52,9 @@
   var hintCount = 0;
   var debounce = false;
   var isSaving = false;
+  var salaryTouched = false;
+  var bonusTouched = false;
+  var companyTouched = false;
 
   function handleCalculateButton() {
     // Set the min height of the result box to that of the input box to minimise screen flashing.
@@ -87,7 +92,7 @@
         <div class="etgpg__petition-ask">If you think it's about time for
           equal pay, sign up to be notified of our campaign to win equal pay and
           find out what you can do to challenge pay inequality in the UK.
-          <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign the petition</a></div>
+          <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign up now</a></div>
         </div>
         <div class="etgpg__total-stats">A total lifetime loss of
         ${r.lifetimeLossTotal} has been calculated from ${r.count} women using
@@ -132,7 +137,9 @@
     }
     else {
       valid = false;
-      $form.find('.etgpg__salary_msg').text('Enter gross salary like 20000');
+      if (salaryTouched) {
+        $form.find('.etgpg__salary_msg').text('Enter gross salary like 20000');
+      }
     }
     return valid;
   }
@@ -144,7 +151,9 @@
     }
     else {
       valid = false;
-      $form.find('.etgpg__bonus_msg').text('Enter gross bonus like 20000');
+      if (bonusTouched) {
+        $form.find('.etgpg__bonus_msg').text('Enter gross bonus like 20000');
+      }
     }
     return valid;
   }
@@ -153,6 +162,7 @@
     $companyInput.val(hints[hintIndex].name);
     selectedCompany = hints[hintIndex];
     $hints.hide();
+    companyTouched = true;
     validateForm();
   }
   function highlightCompany() {

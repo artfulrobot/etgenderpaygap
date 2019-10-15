@@ -9,6 +9,8 @@ $col_et_light_grey: #F8F8F8;
   max-width: 30rem;
   background-color: $col_et_light_grey;
   padding:1rem;
+
+  line-height: 1.4;
 }
 .etgpg__field {
   display: flex;
@@ -36,6 +38,8 @@ $col_et_light_grey: #F8F8F8;
   input { width: 100%; }
 }
 .etgpg__centre { text-align: center; }
+
+// Shared with <button> and <a.etgpg__button>
 a.etgpg__button,
 .etgpg button {
   background-color: $col_et_green;
@@ -44,6 +48,7 @@ a.etgpg__button,
   border: medium none;
   padding: 0.3rem 1rem;
   box-shadow: none;
+  margin: 1rem auto;
 
   &:active, &:hover {
     background-color: $col_et_dark_grey;
@@ -55,6 +60,11 @@ a.etgpg__button,
     color:white;
   }
 }
+.etgpg button {
+  display:block;
+}
+
+// Links only
 a.etgpg__button {
   display: inline-block;
   &:link,
@@ -76,12 +86,20 @@ a.etgpg__button {
   box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
 
   ul {
-    list-style: none;
     padding:0;
     margin:0;
   }
-  li {
-
+}
+// We need to be more specific than the theme, so .block__content introduced here.
+.etgpg__hints ul, // generic
+.block__content .etgpg__hints ul // et theme
+{
+  margin:0;
+}
+.etgpg__hints ul li, // generic
+.block__content .etgpg__hints ul li // et theme
+{
+    list-style: none;
     padding:0.125rem 0.5rem;
     margin:0;
     cursor: pointer;
@@ -90,9 +108,6 @@ a.etgpg__button {
     &.highlighted {
       background-color: #eee;
     }
-
-  }
-
 }
 .etgpg__date,
 .etgpg__loss {
