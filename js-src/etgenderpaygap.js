@@ -79,10 +79,10 @@
       $result.append(
           (
             (r.paygap_salary > 0)
-            ? `Based on the gender pay gap at <span>${r.company}</span>`
-            : `<span>${r.company}</span> has a gender pay gap which favours women. However, nationally`
+            ? `Based on the gender pay gap at <span>${r.company}</span>, the lifetime`
+            : `<span>${r.company}</span> has a gender pay gap which favours women. However, nationally, the average lifetime`
           )
-        + `, the lifetime earnings loss for someone at your pay is*
+        + ` earnings loss for someone at your pay is*
         <div class="etgpg__loss">${r.lifetimeLoss}</div>
         <div class="etgpg__date-intro">The date in the year when women `
         + ((r.paygap_salary > 0) ? `working at ${r.company} ` : 'in the UK ')
@@ -95,7 +95,7 @@
           <div class="etgpg__centre"><a href="https://www.equalitytrust.org.uk/demand-end-pay-inequality" class="etgpg__button">Sign up now</a></div>
         </div>
         <div class="etgpg__total-stats">A total lifetime loss of
-        ${r.lifetimeLossTotal} has been calculated from ${r.count} women using
+        ${r.lifetimeLossTotal} has been calculated from ${r.count} people using
         this tool.</div>
         <div class="etgpg__smallprint">*This is an estimated calculation based
         on 2018 gender pay gap reporting data.</div>
