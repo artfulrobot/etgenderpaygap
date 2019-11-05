@@ -80,12 +80,12 @@
           (
             (r.paygap_salary > 0)
             ? `Based on the gender pay gap at <span>${r.company}</span>`
-            : `We could not calculate a gender pay gap at your company, but based on the national average`
+            : `<span>${r.company}</span> has a gender pay gap which favours women. However, nationally`
           )
         + `, the lifetime earnings loss for someone at your pay is*
         <div class="etgpg__loss">${r.lifetimeLoss}</div>
         <div class="etgpg__date-intro">The date in the year when women `
-        + ((r.paygap_salary > 0) ? `working at ${r.company} ` : '')
+        + ((r.paygap_salary > 0) ? `working at ${r.company} ` : 'in the UK ')
         + `effectively cease to be paid is</div>
         <div class="etgpg__date">${r.last_paid_day}</div>
 
