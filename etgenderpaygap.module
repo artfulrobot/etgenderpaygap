@@ -88,10 +88,17 @@ function etgenderpaygap__access_matches() {
  *  count: 123,
  *  totalLifetimeLoss: 1231313123
  * }
+ (
+            (r.paygap_salary > 0)
+            ? `*This is an estimated calculation based on 2018 gender pay gap reporting data.`
+            : `*This is an estimated calculation based on 2019 ONS gender pay gap figures.`
+          )
  */
 function etgenderpaygap__page_submit() {
   $company_id = (int) $_POST['company'] ?? 0;
+
   if ($company_id) {
+    // Got a particular company.
     $company = db_query(
       'SELECT * FROM etgenderpaygap_companies WHERE id = :theid;',
       [':theid' => $company_id]
@@ -101,6 +108,7 @@ function etgenderpaygap__page_submit() {
       drupal_json_output(['error' => 'Invalid request']);
       drupal_exit();
     }
+    $useNationalAverages = !($company['paygap_hours'] > 0);
   }
   else {
     $company = [
@@ -108,6 +116,8 @@ function etgenderpaygap__page_submit() {
       'paygap_hours' => variable_get('etgenderpaygap_avg_paygap', 0),
       'paygap_bonus' => 0, // variable_get('etgenderpaygap_avg_bonusgap', 0),
     ];
+    // Use the company paygap, unless it's zero or negative, in which case use the national average.
+    $useNationalAverages = TRUE;
   }
   if (empty($_POST['salary'])) {
     drupal_json_output(['error' => 'Invalid request']);
@@ -120,8 +130,7 @@ function etgenderpaygap__page_submit() {
     drupal_exit();
   }
 
-  // Use the company paygap, unless it's zero or negative, in which case use the national average.
-  $gap_used = ($company['paygap_hours'] > 0) ? $company['paygap_hours'] : variable_get('etgenderpaygap_avg_paygap', 0);
+  $gap_used = $useNationalAverages ? variable_get('etgenderpaygap_avg_paygap', 0) : $company['paygap_hours'];
   $loss = $gap_used / 100 * $salary * WORKING_YEARS;
 
   // If we have a bonus, and a paygap for bonuses at this company, include that in the loss.
@@ -146,6 +155,10 @@ function etgenderpaygap__page_submit() {
     'paygap_bonus'      => (float) $company['paygap_hours'],
     'company'           => $company['name'],
     'last_paid_day'     => $date,
+    'data_src'          => htmlspecialchars(variable_get(
+                             $useNationalAverages
+                             ? 'etgenderpaygap_data_src_national'
+                             : 'etgenderpaygap_data_src_company')),
   ];
 
   drupal_json_output($output);
@@ -198,12 +211,37 @@ function etgenderpaygap__form_config($form, &$form_state) {
   ];
   $form['etgenderpaygap_data'] = [
     '#title'             => 'Data source',
-    '#description'       => 'Use this to upload replacement data',
+    '#description'       => '<p>Use this to upload replacement data.
+              Note the CSV file should have three columns
+              with these headers: <code>EmployerName</code>,
+              <code>DiffMeanHourlyPercent</code>, <code>DiffMeanBonusPercent</code>.
+              It should not have any blank columns, nor any gaps in the rows.</p>' ,
     '#type'              => 'managed_file',
     '#upload_location'   => 'private://etgenderpaygap/',
     '#upload_validators' => ['file_validate_extensions' => ['csv']],
     '#default_value'     => variable_get('etgenderpaygap_data', NULL),
   ];
+
+  $form['etgenderpaygap_data_src_company'] = [
+    '#title'       => 'Note about the data source used when a company was found',
+    '#required'    => TRUE,
+    '#description' => 'Smallprint displayed on the results screen after the asterix.',
+    '#type'        => 'textarea',
+    '#rows'        => 2,
+    '#cols'        => 60,
+    '#default_value' => variable_get('etgenderpaygap_data_src_company', 'This is an estimated calculation based on 2019 gender pay gap reporting data.'),
+  ];
+
+  $form['etgenderpaygap_data_src_national'] = [
+    '#title'       => 'Note about the data source used when a company was not found',
+    '#required'    => TRUE,
+    '#description' => 'Smallprint displayed on the results screen after the asterix.',
+    '#type'        => 'textarea',
+    '#rows'        => 2,
+    '#cols'        => 60,
+    '#default_value' => variable_get('etgenderpaygap_data_src_national', 'This is an estimated calculation based on 2019 ONS gender pay gap figures.'),
+  ];
+
   $form['#submit'][] = 'etgenderpaygap__form_config_submit';
   return system_settings_form($form);
 }
@@ -216,18 +254,23 @@ function etgenderpaygap__form_config_validate($form, &$form_state) {
     $file = file_load($form_state['values']['etgenderpaygap_data']);
 
     require_once __DIR__ . "/vendor/CsvParser.php";
-    $csv = CsvParser::createFromFile($file->uri);
-    $headers = $csv->getHeaders();
-    $missing = [];
-    foreach (['EmployerName', 'DiffMeanHourlyPercent', 'DiffMeanBonusPercent'] as $_) {
-      if (!in_array($_, $headers)) {
-        $missing[] = $_;
+    try {
+      $csv = CsvParser::createFromFile($file->uri);
+      $headers = $csv->getHeaders();
+      $missing = [];
+      foreach (['EmployerName', 'DiffMeanHourlyPercent', 'DiffMeanBonusPercent'] as $_) {
+        if (!in_array($_, $headers)) {
+          $missing[] = $_;
+        }
+      }
+      if ($missing) {
+        $missing = "The CSV file is missing these columns: " . implode(', ', $missing);
+        throw new \InvalidArgumentException($missing);
       }
     }
-    if ($missing) {
-      form_set_error('etgenderpaygap_data', "The CSV file is missing these columns: " . implode(', ', $missing));
-    }
-    else {
+    catch (\Exception $e) {
+      form_set_error('etgenderpaygap_data', "An error occurred trying to process the CSV file: "
+        . htmlspecialchars($e->getMessage()));
     }
   }
 }

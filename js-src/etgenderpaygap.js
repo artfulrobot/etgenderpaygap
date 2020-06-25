@@ -96,13 +96,7 @@
         <div class="etgpg__total-stats">A total lifetime loss of
         ${r.lifetimeLossTotal} has been calculated from ${r.count} people using
         this tool.</div>
-        <div class="etgpg__smallprint">`
-        + (
-            (r.paygap_salary > 0)
-            ? `*This is an estimated calculation based on 2018 gender pay gap reporting data.`
-            : `*This is an estimated calculation based on 2019 ONS gender pay gap figures.`
-          )
-        + `</div>`
+        <div class="etgpg__smallprint">${r.data_src}</div>`
       );
     })
     .fail((jqxhr, textStatus, error) => {
