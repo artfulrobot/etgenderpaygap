@@ -1,4 +1,0 @@
-name = Gender Pay Gap Calculator
-description = "Provides an estimate of lifetime loss of earnings due to gender inequality"
-core = 7.x
-configure = admin/config/etgenderpaygap

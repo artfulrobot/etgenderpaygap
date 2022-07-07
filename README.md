@@ -1,10 +1,11 @@
-# Gender Pay Gap Drupal Module
+# Give Up GitHub
 
-This is developed for the Equality Trust by Artful Robot.
+This project has given up GitHub.  ([See Software Freedom Conservancy's *Give Up  GitHub* site for details](https://GiveUpGitHub.org).)
 
-https://artfulrobot.uk
+You can now find this project at [Codeberg](https://codeberg.org/artfulrobot/etgenderpaygap) instead.
 
-## Changes 25 July 2020
+Any use of this project's code by GitHub Copilot, past or present, is done without our permission.  We do not consent to GitHub's use of this project's code in Copilot.
 
-- give nicer error message if bad CSV uploaded.
-- make the data source sentences config options.
+Join us; you can [give up GitHub](https://GiveUpGitHub.org) too!
+
+![Logo of the GiveUpGitHub campaign](https://sfconservancy.org/img/GiveUpGitHub.png)
